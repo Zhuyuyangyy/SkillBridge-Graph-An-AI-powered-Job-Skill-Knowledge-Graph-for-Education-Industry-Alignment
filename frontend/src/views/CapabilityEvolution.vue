@@ -3,6 +3,7 @@
     <PageHeader title="能力演化" desc="岗位能力随时间的新增、淘汰与迁移趋势分析">
       <el-radio-group v-model="tab" @change="onTabChange">
         <el-radio-button value="timeline">演化时间线</el-radio-button>
+        <el-radio-button value="version">版本对比</el-radio-button>
         <el-radio-button value="hotspot">能力热点</el-radio-button>
         <el-radio-button value="compare">领域对比</el-radio-button>
       </el-radio-group>
@@ -78,6 +79,60 @@
       </div>
     </template>
 
+    <!-- Version comparison -->
+    <template v-else-if="tab === 'version'">
+      <div class="version-hint">
+        <el-icon><InfoFilled /></el-icon>
+        <span>由岗位能力更新事件重建「上一版 vs 当前版」的能力画像，直观展示每个岗位新增、淘汰、调整了哪些能力及依据。</span>
+      </div>
+      <div class="content-grid version-cards">
+        <section v-for="card in versionCards" :key="card.jobId" class="panel span-6 version-card">
+          <div class="version-card__head">
+            <div class="version-card__title">
+              <span class="vc-job">{{ card.jobName }}</span>
+              <el-tag size="small" effect="plain">{{ card.domain }}</el-tag>
+            </div>
+            <div class="version-badges">
+              <span class="ver ver--from">{{ card.fromVersion }}</span>
+              <span class="ver-arrow">→</span>
+              <span class="ver ver--to">{{ card.toVersion }}</span>
+            </div>
+          </div>
+          <p class="version-note">{{ card.note }}</p>
+          <div class="diff-grid">
+            <div class="diff-col diff-col--add">
+              <div class="diff-label">新增能力 <b>{{ card.added.length }}</b></div>
+              <div class="diff-tags">
+                <el-tag v-for="s in card.added" :key="'a' + s" size="small" type="success" effect="light">+ {{ s }}</el-tag>
+                <span v-if="!card.added.length" class="diff-empty">无</span>
+              </div>
+            </div>
+            <div class="diff-col diff-col--mod">
+              <div class="diff-label">调整/替代 <b>{{ card.modified.length }}</b></div>
+              <div class="diff-tags">
+                <el-tooltip v-for="s in card.modified" :key="'m' + s.name" :content="s.change" :disabled="!s.change" placement="top">
+                  <el-tag size="small" type="warning" effect="light">~ {{ s.name }}</el-tag>
+                </el-tooltip>
+                <span v-if="!card.modified.length" class="diff-empty">无</span>
+              </div>
+            </div>
+            <div class="diff-col diff-col--del">
+              <div class="diff-label">淘汰能力 <b>{{ card.removed.length }}</b></div>
+              <div class="diff-tags">
+                <el-tag v-for="s in card.removed" :key="'r' + s" size="small" type="danger" effect="light">− {{ s }}</el-tag>
+                <span v-if="!card.removed.length" class="diff-empty">无</span>
+              </div>
+            </div>
+          </div>
+          <div class="version-foot">
+            <span class="version-conf">证据置信度 {{ (card.confidence * 100).toFixed(0) }}%</span>
+            <span class="version-count">当前能力 {{ card.currentSkills.length }} 项 · 上一版 {{ card.previousSkills.length }} 项</span>
+          </div>
+        </section>
+        <el-empty v-if="!versionCards.length" description="暂无岗位版本更新记录" :image-size="90" />
+      </div>
+    </template>
+
     <!-- Compare -->
     <template v-else>
       <section class="panel">
@@ -101,6 +156,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 import PageHeader from '@/components/PageHeader.vue'
 import EChart from '@/components/EChart.vue'
 import { api } from '@/api/http'
@@ -110,6 +166,7 @@ const loading = ref(false)
 const timeline = ref<any>({ timeline: [], events: [], total: 0 })
 const hotspot = ref<any>({ rising: [], declining: [], emerging: [] })
 const compare = ref<any>({ categories: [], domains: [], matrix: [] })
+const versionCards = ref<any[]>([])
 
 const PALETTE = ['#2563eb', '#06b6d4', '#7c3aed', '#18b981', '#f59e0b', '#ec4899', '#0ea5e9']
 
@@ -205,10 +262,16 @@ function skillBar(weight: number) {
 async function loadAll() {
   loading.value = true
   try {
-    const [t, h, c] = await Promise.all([api.evolutionTimeline(), api.evolutionHotspot(), api.evolutionCompare()])
+    const [t, h, c, v] = await Promise.all([
+      api.evolutionTimeline(),
+      api.evolutionHotspot(),
+      api.evolutionCompare(),
+      api.evolutionVersionCompare()
+    ])
     timeline.value = t
     hotspot.value = h
     compare.value = c
+    versionCards.value = Array.isArray(v?.cards) ? v.cards : []
   } finally {
     loading.value = false
   }
@@ -249,6 +312,165 @@ onMounted(loadAll)
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
+}
+
+/* Version comparison */
+.version-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(6, 182, 212, 0.28);
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: rgba(6, 182, 212, 0.07);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.version-hint .el-icon {
+  flex: 0 0 auto;
+  color: var(--cyan);
+  font-size: 18px;
+}
+
+.version-cards {
+  margin-top: 4px;
+}
+
+.version-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.version-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.version-card__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vc-job {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.version-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.ver {
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.ver--from {
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--muted);
+}
+
+.ver--to {
+  border: 1px solid rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.16), rgba(6, 182, 212, 0.14));
+  color: var(--primary);
+}
+
+.ver-arrow {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.version-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.diff-col {
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(190, 213, 242, 0.5);
+}
+
+.diff-col--add {
+  border-color: rgba(24, 185, 129, 0.32);
+  background: rgba(24, 185, 129, 0.06);
+}
+
+.diff-col--mod {
+  border-color: rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.diff-col--del {
+  border-color: rgba(244, 63, 94, 0.3);
+  background: rgba(244, 63, 94, 0.05);
+}
+
+.diff-label {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.diff-label b {
+  color: var(--primary);
+}
+
+.diff-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.diff-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.version-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid rgba(104, 158, 225, 0.16);
+  padding-top: 10px;
+}
+
+.version-conf {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.version-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .event-list {
@@ -413,6 +635,7 @@ onMounted(loadAll)
   .span-7,
   .span-5,
   .span-8,
+  .span-6,
   .span-4 {
     grid-column: span 12;
   }

@@ -17,12 +17,12 @@
 import ast
 from collections import defaultdict, deque
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.models import EvolutionEvent, JobEntity, JobSkillRelation, SkillEntity
+from app.models import EvolutionEvent, JobEntity, JobSkillRelation, RawJD, SkillEntity
 
 router = APIRouter(prefix="/api", tags=["graph-explore"])
 
@@ -457,3 +457,129 @@ def evolution_compare(db: Session = Depends(get_db)):
         matrix.append(row)
 
     return {"categories": categories, "domains": domains, "matrix": matrix}
+
+
+# ---------------------------------------------------------------------------
+# 证据链（借鉴挑战杯国奖项目的「可解释、可追溯」表达）
+# ---------------------------------------------------------------------------
+
+
+def _jd_snippets(db: Session, term: str, limit: int = 5) -> list[dict]:
+    """在真实 JD 正文中检索包含该词的片段，作为证据来源（不编造）。"""
+    term = (term or "").strip()
+    if not term:
+        return []
+    rows = db.scalars(select(RawJD).where(RawJD.content.like(f"%{term}%")).limit(limit)).all()
+    snippets = []
+    for jd in rows:
+        content = jd.content or ""
+        idx = content.find(term)
+        start = max(0, idx - 34)
+        end = min(len(content), idx + len(term) + 46)
+        snippet = content[start:end].replace("\n", " ").strip()
+        if start > 0:
+            snippet = "…" + snippet
+        if end < len(content):
+            snippet = snippet + "…"
+        snippets.append(
+            {
+                "sourceType": "jd",
+                "sourceId": f"jd_{jd.id}",
+                "title": jd.title,
+                "snippet": snippet,
+            }
+        )
+    return snippets
+
+
+@router.get("/graph/evidence")
+def graph_evidence(
+    node_type: str = Query(..., pattern="^(job|skill)$"),
+    node_id: int = Query(...),
+    db: Session = Depends(get_db),
+):
+    """节点证据链：证据说明 + 真实 JD 来源片段 + 来源数量 + 置信度 + 审核状态。"""
+    if node_type == "job":
+        job = db.scalar(select(JobEntity).where(JobEntity.id == node_id))
+        if not job:
+            raise HTTPException(status_code=404, detail="岗位不存在")
+        rel_count = db.scalar(select(func.count(JobSkillRelation.id)).where(JobSkillRelation.job_id == node_id)) or 0
+        sources = _jd_snippets(db, job.name)
+        jd_hits = db.scalar(select(func.count(RawJD.id)).where(RawJD.content.like(f"%{job.name}%"))) or 0
+        return {
+            "name": job.name,
+            "type": "job",
+            "category": job.domain,
+            "evidence": job.evidence or "",
+            "confidence": 0.9 if not job.is_emerging else 0.72,
+            "relationCount": rel_count,
+            "sourceCount": jd_hits,
+            "reviewStatus": "watching" if job.is_emerging else "approved",
+            "sources": sources,
+        }
+    skill = db.scalar(select(SkillEntity).where(SkillEntity.id == node_id))
+    if not skill:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    rels = db.scalars(select(JobSkillRelation).where(JobSkillRelation.skill_id == node_id)).all()
+    demand = len(rels)
+    avg_weight = round(sum(float(r.weight or 1) for r in rels) / demand, 2) if demand else 0.0
+    sources = _jd_snippets(db, skill.name)
+    jd_hits = db.scalar(select(func.count(RawJD.id)).where(RawJD.content.like(f"%{skill.name}%"))) or 0
+    return {
+        "name": skill.name,
+        "type": "skill",
+        "category": skill.category,
+        "evidence": skill.evidence or "",
+        "confidence": avg_weight,
+        "demand": demand,
+        "sourceCount": jd_hits,
+        "reviewStatus": "approved" if avg_weight >= 0.6 else "needs_review",
+        "sources": sources,
+    }
+
+
+@router.get("/evolution/version-compare")
+def evolution_version_compare(db: Session = Depends(get_db)):
+    """岗位能力版本对比卡：由能力更新事件重建「上一版 vs 当前版」的能力差异。"""
+    events = db.scalars(select(EvolutionEvent).order_by(EvolutionEvent.created_at.desc())).all()
+    jobs = {job.id: job for job in db.scalars(select(JobEntity)).all()}
+    skills_by_id = {skill.id: skill for skill in db.scalars(select(SkillEntity)).all()}
+    cards = []
+    for event in events:
+        job = jobs.get(event.job_id)
+        if not job:
+            continue
+        rel_skill_ids = [
+            r.skill_id for r in db.scalars(select(JobSkillRelation).where(JobSkillRelation.job_id == event.job_id)).all()
+        ]
+        current = [skills_by_id[sid].name for sid in rel_skill_ids if sid in skills_by_id]
+        added = _skill_names(event.added_skills)
+        removed = _skill_names(event.removed_skills)
+        modified = [
+            {"name": item.get("skill") or item.get("name") or "", "change": item.get("change", "")}
+            if isinstance(item, dict)
+            else {"name": str(item), "change": ""}
+            for item in _parse_list(event.modified_skills)
+        ]
+        added_set = set(added)
+        # 重建上一版能力集合：当前 - 本次新增 + 本次删除
+        previous = [s for s in current if s not in added_set] + [s for s in removed if s not in current]
+        versions = _skill_names(event.version_record)
+        cards.append(
+            {
+                "jobId": event.job_id,
+                "jobName": job.name,
+                "domain": job.domain,
+                "fromVersion": versions[0] if versions else "v1.0",
+                "toVersion": versions[-1] if len(versions) > 1 else "v1.1",
+                "added": added,
+                "removed": removed,
+                "modified": modified,
+                "currentSkills": current[:16],
+                "previousSkills": previous[:16],
+                "note": event.update_note or "",
+                "confidence": round(float(event.confidence or 0), 2),
+                "evidence": event.evidence or "",
+            }
+        )
+    return {"cards": cards, "total": len(cards)}

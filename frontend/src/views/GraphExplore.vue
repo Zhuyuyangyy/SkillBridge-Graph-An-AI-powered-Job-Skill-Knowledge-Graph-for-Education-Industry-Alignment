@@ -117,16 +117,68 @@
             <div class="detail-block"><span>关联关系</span><p>{{ selected.degree }} 条</p></div>
             <div v-if="selected.category" class="detail-block"><span>能力分类</span><p>{{ selected.category }}</p></div>
             <div class="detail-block"><span>证据来源</span><p>{{ selected.evidence || '已进入图谱，暂未补充来源说明。' }}</p></div>
+            <el-button type="primary" style="width: 100%; margin-top: 14px" @click="openEvidence(selected)">
+              <el-icon style="margin-right: 6px"><Document /></el-icon>查看证据链
+            </el-button>
           </template>
         </section>
       </aside>
     </div>
+
+    <!-- Evidence chain drawer -->
+    <el-drawer v-model="evidenceVisible" :size="440" title="证据链" direction="rtl">
+      <div v-loading="evidenceLoading" class="evidence-body">
+        <template v-if="evidence">
+          <div class="evidence-hero" :style="{ '--node-color': evidence.type === 'job' ? '#2563eb' : '#18b981' }">
+            <span class="evidence-hero__dot"></span>
+            <div>
+              <h3>{{ evidence.name }}</h3>
+              <el-tag size="small" effect="plain" :type="evidence.type === 'job' ? 'primary' : 'success'">
+                {{ evidence.type === 'job' ? '岗位' : '技能' }}
+              </el-tag>
+              <el-tag size="small" :type="statusType(evidence.reviewStatus)" effect="light" style="margin-left: 6px">
+                {{ statusLabel(evidence.reviewStatus) }}
+              </el-tag>
+            </div>
+          </div>
+
+          <div class="evidence-metrics">
+            <div class="evi-metric">
+              <span class="evi-metric__num">{{ (evidence.confidence * 100).toFixed(0) }}%</span>
+              <span class="evi-metric__lbl">置信度</span>
+            </div>
+            <div class="evi-metric">
+              <span class="evi-metric__num">{{ evidence.sourceCount }}</span>
+              <span class="evi-metric__lbl">来源命中</span>
+            </div>
+            <div class="evi-metric">
+              <span class="evi-metric__num">{{ evidence.demand ?? evidence.relationCount ?? 0 }}</span>
+              <span class="evi-metric__lbl">{{ evidence.type === 'job' ? '关联能力' : '需求岗位' }}</span>
+            </div>
+          </div>
+
+          <div class="evidence-note">{{ evidence.evidence || '暂无来源说明。' }}</div>
+
+          <div class="evidence-sources">
+            <div class="evidence-sources__head">真实来源片段（来自 JD 语料）</div>
+            <div v-for="src in evidence.sources" :key="src.sourceId" class="source-card">
+              <div class="source-card__top">
+                <el-tag size="small" effect="plain">{{ src.sourceId }}</el-tag>
+                <span class="source-card__title">{{ src.title }}</span>
+              </div>
+              <p class="source-card__snippet">{{ src.snippet }}</p>
+            </div>
+            <el-empty v-if="!evidence.sources?.length" description="语料中暂未检索到直接来源片段" :image-size="70" />
+          </div>
+        </template>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
 import * as echarts from 'echarts'
-import { Search } from '@element-plus/icons-vue'
+import { Document, Search } from '@element-plus/icons-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { api } from '@/api/http'
@@ -161,6 +213,9 @@ const pathFrom = ref<number | null>(null)
 const pathTo = ref<number | null>(null)
 const pathLoading = ref(false)
 const pathResult = ref<{ found: boolean; path: { label: string; type: string }[]; shared: string[] } | null>(null)
+const evidenceVisible = ref(false)
+const evidenceLoading = ref(false)
+const evidence = ref<any>(null)
 let chart: echarts.ECharts | undefined
 let resizeObserver: ResizeObserver | undefined
 
@@ -306,6 +361,27 @@ async function findPath() {
   } finally {
     pathLoading.value = false
   }
+}
+
+async function openEvidence(node: GraphNode) {
+  const type = node.type === 'job' ? 'job' : 'skill'
+  const id = Number(node.id.replace(/^(job|skill)-/, ''))
+  evidenceVisible.value = true
+  evidenceLoading.value = true
+  evidence.value = null
+  try {
+    evidence.value = await api.graphEvidence(type, id)
+  } finally {
+    evidenceLoading.value = false
+  }
+}
+
+function statusLabel(status: string) {
+  return { approved: '已入图谱', watching: '观察中', needs_review: '待审核' }[status] || status
+}
+
+function statusType(status: string) {
+  return { approved: 'success', watching: 'warning', needs_review: 'danger' }[status] || 'info'
 }
 
 function resetView() {
@@ -597,6 +673,116 @@ onBeforeUnmount(() => {
   margin: 7px 0 0;
   color: var(--text);
   line-height: 1.6;
+}
+
+/* Evidence drawer */
+.evidence-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 200px;
+}
+
+.evidence-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(78, 154, 255, 0.2);
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(230, 244, 255, 0.6), rgba(255, 255, 255, 0.4));
+}
+
+.evidence-hero h3 {
+  margin: 0 0 7px;
+  color: var(--text);
+}
+
+.evidence-hero__dot {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: var(--node-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--node-color) 18%, transparent), 0 0 16px var(--node-color);
+}
+
+.evidence-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.evi-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(190, 213, 242, 0.5);
+  border-radius: 14px;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.evi-metric__num {
+  color: var(--primary);
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.evi-metric__lbl {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.evidence-note {
+  border-left: 3px solid var(--cyan);
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: rgba(6, 182, 212, 0.06);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.evidence-sources__head {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.source-card {
+  margin-bottom: 10px;
+  border: 1px solid rgba(190, 213, 242, 0.5);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.source-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.source-card__title {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-card__snippet {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 @media (max-width: 1100px) {
