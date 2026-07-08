@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      - AI_PROVIDER=mock
+      - AI_API_BASE_URL=
+      - AI_API_KEY=
+      - AI_MODEL=mock-llm
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app/shurong_zhilian.db:/app/app/shurong_zhilian.db
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://localhost:8000
+    depends_on:
+      - backend

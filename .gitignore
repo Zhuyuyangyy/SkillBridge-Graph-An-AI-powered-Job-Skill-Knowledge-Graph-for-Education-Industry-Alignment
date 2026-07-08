@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# SQLite runtime database (regenerated from seed on first run)
+backend/shurong_zhilian.db
+*.db
+
+# Dev logs
+backend/devserver.*.log
+
+# Node / frontend
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local extraction / work dirs
+_work_shurong/
+_work_jobgraph/
+_extract/
