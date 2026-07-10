@@ -614,10 +614,10 @@ async function submitRegister() {
 
 .corner {
   position: absolute;
-  width: 30px;
-  height: 30px;
-  border: 2px solid rgba(0, 150, 255, 0.78);
-  opacity: 0.8;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid rgba(90, 190, 255, 0.5);
+  opacity: 0.6;
 }
 
 .corner-top-left {
@@ -686,18 +686,19 @@ async function submitRegister() {
 
 .auth-head p {
   margin: 0;
-  color: rgba(142, 228, 255, 0.78);
+  color: rgba(142, 228, 255, 0.72);
   font-size: 11px;
-  font-weight: 950;
-  letter-spacing: 0.22em;
+  font-weight: 650;
+  letter-spacing: 0.2em;
 }
 
 .auth-head h1 {
   margin: 8px 0 0;
   color: #fff;
-  font-size: 25px;
-  font-weight: 950;
-  line-height: 1.25;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.35;
 }
 
 .mode-switch {
@@ -725,15 +726,15 @@ async function submitRegister() {
   padding: 11px 10px;
   background: transparent;
   color: rgba(205, 236, 249, 0.72);
-  font-weight: 900;
+  font-weight: 650;
   cursor: pointer;
   transition: 0.25s ease;
 }
 
 .mode-switch button.active {
-  background: linear-gradient(135deg, rgba(30, 136, 255, 0.94), rgba(31, 212, 255, 0.76));
+  background: linear-gradient(135deg, rgba(31, 110, 242, 0.92), rgba(14, 182, 220, 0.8));
   color: #fff;
-  box-shadow: 0 10px 28px rgba(28, 178, 255, 0.28);
+  box-shadow: 0 8px 22px rgba(28, 150, 230, 0.26);
 }
 
 .auth-form {
@@ -787,31 +788,19 @@ async function submitRegister() {
   overflow: hidden;
   border: 0;
   border-radius: 17px;
-  background: linear-gradient(135deg, #1779ff, #00d7ff);
+  background: linear-gradient(135deg, #1f6ef2, #0eb6dc);
   color: #fff;
-  font-size: 16px;
-  font-weight: 950;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 0 16px 34px rgba(0, 179, 255, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
-}
-
-.neon-button::before {
-  position: absolute;
-  top: -40%;
-  left: -30%;
-  width: 34%;
-  height: 180%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68), transparent);
-  transform: rotate(18deg);
-  animation: buttonShine 3.6s ease-in-out infinite;
-  content: "";
+  box-shadow: 0 12px 28px rgba(0, 150, 230, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .neon-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 22px 44px rgba(0, 194, 255, 0.42), 0 0 34px rgba(77, 225, 255, 0.28);
-  filter: saturate(1.08);
+  box-shadow: 0 18px 38px rgba(0, 179, 255, 0.36);
 }
 
 .neon-button:disabled {
@@ -989,17 +978,6 @@ async function submitRegister() {
   }
   to {
     transform: translateY(720px);
-  }
-}
-
-@keyframes buttonShine {
-  0%,
-  48% {
-    left: -42%;
-  }
-  72%,
-  100% {
-    left: 120%;
   }
 }
 

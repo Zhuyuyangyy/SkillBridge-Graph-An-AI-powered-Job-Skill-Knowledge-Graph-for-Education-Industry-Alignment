@@ -324,12 +324,6 @@ async function handleUserCommand(command: string) {
 </script>
 
 <style scoped>
-@property --search-border-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .app-shell {
   min-height: 100vh;
   color: var(--text);
@@ -341,40 +335,12 @@ async function handleUserCommand(command: string) {
   z-index: 20;
   height: 100vh;
   overflow: hidden;
-  border-right: 1px solid rgba(190, 213, 242, 0.82);
-  background:
-    linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(229, 241, 255, 0.92) 46%, rgba(218, 235, 255, 0.84)),
-    rgba(255, 255, 255, 0.86);
-  box-shadow: 16px 0 54px rgba(37, 99, 235, 0.12);
-  backdrop-filter: blur(24px);
+  border-right: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .aside-glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.aside-glow::before {
-  position: absolute;
-  left: 26px;
-  top: 90px;
-  width: 160px;
-  height: 340px;
-  content: "";
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.11);
-  filter: blur(52px);
-  transform: rotate(12deg);
-}
-
-.aside-glow::after {
-  position: absolute;
-  inset-block: 0;
-  right: 0;
-  width: 1px;
-  content: "";
-  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+  display: none;
 }
 
 .brand {
@@ -382,25 +348,23 @@ async function handleUserCommand(command: string) {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 88px;
+  min-height: 84px;
   padding: 20px 18px 16px;
-  border-bottom: 1px solid rgba(190, 213, 242, 0.68);
+  border-bottom: 1px solid var(--border);
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.92), transparent 28%),
-    linear-gradient(135deg, #2563eb, #06b6d4);
-  box-shadow: 0 0 30px rgba(6, 182, 212, 0.28);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary), var(--cyan));
+  box-shadow: 0 4px 14px rgba(47, 94, 224, 0.28);
   color: #fff;
-  font-size: 18px;
-  font-weight: 950;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .brand-copy {
@@ -408,16 +372,17 @@ async function handleUserCommand(command: string) {
 }
 
 .brand-name {
-  color: #071a3d;
-  font-size: 20px;
-  font-weight: 950;
+  color: var(--heading);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .brand-desc {
-  margin-top: 6px;
-  color: #53657e;
+  margin-top: 4px;
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 450;
 }
 
 .status-card {
@@ -426,44 +391,41 @@ async function handleUserCommand(command: string) {
   align-items: center;
   gap: 10px;
   margin: 14px 14px 12px;
-  border: 1px solid rgba(190, 213, 242, 0.82);
-  border-radius: 18px;
-  padding: 12px;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(6, 182, 212, 0.12), transparent 30%),
-    rgba(255, 255, 255, 0.64);
-  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.08);
-  animation: sideCardPulse 6.2s ease-in-out infinite;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-2);
 }
 
 .status-sprite-shell {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   overflow: hidden;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(6, 182, 212, 0.12));
+  border-radius: 10px;
+  background: var(--primary-soft);
 }
 
 .status-card b {
   display: block;
-  color: #14346c;
+  color: var(--heading);
   font-size: 13px;
+  font-weight: 650;
 }
 
 .status-card > div span {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 450;
 }
 
 .status-arrow {
   margin-left: auto;
-  color: #2563eb;
+  color: var(--muted);
 }
 
 .side-menu {
@@ -471,10 +433,10 @@ async function handleUserCommand(command: string) {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: calc(100vh - 132px);
+  gap: 2px;
+  max-height: calc(100vh - 176px);
   overflow-y: auto;
-  padding: 0 12px;
+  padding: 4px 12px 16px;
   border: 0;
   background: transparent;
 }
@@ -485,71 +447,28 @@ async function handleUserCommand(command: string) {
 
 .side-menu::-webkit-scrollbar-thumb {
   border-radius: 99px;
-  background: rgba(37, 99, 235, 0.22);
+  background: var(--border-strong);
 }
 
 :deep(.el-menu-item) {
   position: relative;
-  height: 39px;
+  height: 38px;
   overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 15px;
-  color: #52647d;
-  font-weight: 850;
-  transition: all 220ms ease;
-}
-
-:deep(.el-menu-item .el-icon:first-of-type) {
-  transition: transform 220ms ease, color 220ms ease, filter 220ms ease;
-}
-
-:deep(.el-menu-item::after) {
-  position: absolute;
-  top: 0;
-  left: -80%;
-  width: 58%;
-  height: 100%;
-  content: "";
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.66), transparent);
-  transform: skewX(-18deg);
-  transition: left 620ms ease;
-}
-
-:deep(.el-menu-item:hover::after) {
-  left: 130%;
+  border-radius: 9px;
+  color: var(--muted);
+  font-weight: 550;
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
 :deep(.el-menu-item:hover) {
-  border-color: rgba(190, 213, 242, 0.86);
-  background: rgba(255, 255, 255, 0.58);
-  color: #1455b8;
-  transform: translateX(3px);
-}
-
-:deep(.el-menu-item:hover .el-icon:first-of-type),
-:deep(.el-menu-item.is-active .el-icon:first-of-type) {
-  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.32));
-  transform: scale(1.08);
+  background: var(--surface-2);
+  color: var(--heading);
 }
 
 :deep(.el-menu-item.is-active) {
-  border-color: rgba(37, 99, 235, 0.24);
-  background: rgba(37, 99, 235, 0.1);
-  color: #1455b8;
-  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.14);
-}
-
-:deep(.el-menu-item.is-active)::before {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  width: 7px;
-  height: 7px;
-  content: "";
-  border-radius: 50%;
-  background: linear-gradient(180deg, var(--primary), var(--cyan));
-  box-shadow: 0 0 14px rgba(6, 182, 212, 0.72);
-  transform: translateY(-50%);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 650;
 }
 
 .active-rail {
@@ -557,11 +476,10 @@ async function handleUserCommand(command: string) {
   left: 0;
   top: 50%;
   display: none;
-  width: 4px;
-  height: 28px;
+  width: 3px;
+  height: 20px;
   border-radius: 0 99px 99px 0;
-  background: linear-gradient(180deg, var(--primary), var(--cyan));
-  box-shadow: 0 0 16px rgba(6, 182, 212, 0.8);
+  background: var(--primary);
   transform: translateY(-50%);
 }
 
@@ -572,45 +490,17 @@ async function handleUserCommand(command: string) {
 .menu-arrow {
   margin-left: auto;
   opacity: 0;
-  transition: opacity 200ms ease, transform 200ms ease;
+  transition: opacity 160ms ease, transform 160ms ease;
 }
 
 :deep(.el-menu-item.is-active) .menu-arrow,
 :deep(.el-menu-item:hover) .menu-arrow {
-  opacity: 1;
+  opacity: 0.7;
   transform: translateX(2px);
 }
 
 .aside-deco {
   display: none;
-  position: absolute;
-  right: 18px;
-  bottom: 20px;
-  left: 18px;
-  display: grid;
-  place-items: center;
-  height: 132px;
-  overflow: hidden;
-  border: 1px solid rgba(104, 211, 255, 0.2);
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 50% 45%, rgba(0, 200, 245, 0.14), transparent 42%),
-    rgba(255, 255, 255, 0.08);
-  pointer-events: none;
-}
-
-.aside-deco-orbit {
-  position: absolute;
-  width: 112px;
-  height: 112px;
-  border: 1px dashed rgba(104, 211, 255, 0.38);
-  border-radius: 50%;
-  animation: asideOrbit 12s linear infinite;
-}
-
-.aside-deco :deep(.sprite-icon) {
-  opacity: 0.5;
-  transform: translateY(18px);
 }
 
 .app-header {
@@ -620,28 +510,11 @@ async function handleUserCommand(command: string) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 94px;
+  height: 84px;
   overflow: hidden;
-  border-bottom: 1px solid rgba(107, 174, 255, 0.28);
-  background:
-    radial-gradient(circle at 20% 0%, rgba(0, 200, 245, 0.14), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(30, 123, 255, 0.12), transparent 28%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(232, 245, 255, 0.74));
-  box-shadow: 0 12px 34px rgba(37, 99, 235, 0.08);
-  backdrop-filter: blur(18px);
-}
-
-.app-header::after {
-  position: absolute;
-  left: 24px;
-  bottom: 0;
-  width: 176px;
-  height: 3px;
-  content: "";
-  border-radius: 99px;
-  background: linear-gradient(90deg, #1e7bff, #00c8f5);
-  box-shadow: 0 0 18px rgba(0, 200, 245, 0.42);
-  animation: headerLineBreath 4.8s ease-in-out infinite;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(14px);
 }
 
 .header-main {
@@ -656,25 +529,28 @@ async function handleUserCommand(command: string) {
 }
 
 .section-mark {
-  width: 4px;
-  height: 28px;
+  width: 3px;
+  height: 22px;
   border-radius: 99px;
-  background: linear-gradient(180deg, #2563eb, #06b6d4);
-  box-shadow: 0 0 18px rgba(6, 182, 212, 0.34);
+  background: linear-gradient(180deg, var(--primary), var(--cyan));
 }
 
 .header-title {
-  color: #071a3d;
-  font-size: 25px;
-  font-weight: 950;
+  color: var(--heading);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
 .header-desc {
-  margin-top: 7px;
-  color: #526b8e;
-  font-size: 14px;
-  font-weight: 750;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -685,20 +561,10 @@ async function handleUserCommand(command: string) {
 }
 
 .search-bar-shell {
-  --search-border-angle: 0deg;
-
   position: relative;
-  z-index: 1;
   display: grid;
   place-items: center;
-  width: 326px;
-  height: 48px;
-  isolation: isolate;
-  overflow: hidden;
-  border-radius: 16px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(239, 248, 255, 0.78));
-  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.08);
+  width: 300px;
 }
 
 .search-glow,
@@ -708,74 +574,28 @@ async function handleUserCommand(command: string) {
   display: none;
 }
 
-.search-bar-shell::before {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  content: "";
-  padding: 2px;
-  border-radius: inherit;
-  background:
-    conic-gradient(
-      from var(--search-border-angle),
-      transparent 0deg,
-      transparent 26deg,
-      rgba(0, 200, 245, 0.12) 35deg,
-      rgba(77, 245, 255, 0.62) 44deg,
-      rgba(255, 255, 255, 0.88) 50deg,
-      rgba(30, 123, 255, 0.54) 58deg,
-      transparent 72deg,
-      transparent 190deg,
-      rgba(77, 245, 255, 0.5) 208deg,
-      rgba(255, 255, 255, 0.76) 216deg,
-      rgba(30, 123, 255, 0.5) 226deg,
-      transparent 244deg,
-      transparent 360deg
-    );
-  opacity: 0.64;
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-  animation: searchBorderSpin 9s linear infinite;
-}
-
-.search-bar-shell:focus-within::before,
-.search-bar-shell:hover::before {
-  opacity: 0.82;
-}
-
 .global-search {
-  width: 316px;
-  position: relative;
-  z-index: 1;
+  width: 100%;
 }
 
 .global-search :deep(.el-input__wrapper) {
-  height: 42px;
-  border: 1px solid rgba(190, 213, 242, 0.24);
-  border-radius: 13px;
-  background: transparent;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 8px 24px rgba(37, 99, 235, 0.04);
-  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border-strong) inset;
+  transition: box-shadow 160ms ease;
+}
+
+.global-search :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #a9bbd6 inset;
 }
 
 .global-search :deep(.el-input__wrapper.is-focus) {
-  border-color: rgba(0, 200, 245, 0.58);
-  box-shadow:
-    0 0 0 3px rgba(0, 200, 245, 0.08),
-    0 12px 30px rgba(37, 99, 235, 0.14);
+  box-shadow: 0 0 0 1.5px var(--primary) inset, 0 0 0 3px rgba(47, 94, 224, 0.12);
 }
 
 .global-search :deep(.el-input__prefix) {
-  color: var(--primary);
+  color: var(--muted);
 }
 
 .theme-switch {
@@ -963,14 +783,14 @@ async function handleUserCommand(command: string) {
 }
 
 .search-suggestion span {
-  color: #0f2b57;
-  font-weight: 850;
+  color: var(--heading);
+  font-weight: 600;
 }
 
 .search-suggestion small {
   overflow: hidden;
   max-width: 150px;
-  color: #8a9bb1;
+  color: var(--muted);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -978,8 +798,7 @@ async function handleUserCommand(command: string) {
 
 .user-avatar {
   background: linear-gradient(135deg, var(--primary), var(--cyan));
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
-  font-weight: 950;
+  font-weight: 700;
 }
 
 .user-chip {
@@ -987,12 +806,19 @@ async function handleUserCommand(command: string) {
   align-items: center;
   gap: 8px;
   max-width: 176px;
-  border: 1px solid rgba(190, 213, 242, 0.88);
-  border-radius: 16px;
-  padding: 5px 10px 5px 5px;
-  background: rgba(255, 255, 255, 0.74);
-  color: #14346c;
-  font-weight: 850;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px 4px 4px;
+  background: var(--surface);
+  color: var(--heading);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.user-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
 }
 
 .user-chip span {
@@ -1003,38 +829,7 @@ async function handleUserCommand(command: string) {
 }
 
 .app-main {
-  padding: 18px 22px 28px;
-}
-
-@keyframes asideOrbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes headerLineBreath {
-  0%,
-  100% {
-    opacity: 0.72;
-    width: 176px;
-  }
-
-  50% {
-    opacity: 1;
-    width: 236px;
-  }
-}
-
-@keyframes searchAuraSpin {
-  to {
-    transform: translate(-50%, -50%) rotate(436deg);
-  }
-}
-
-@keyframes searchBorderSpin {
-  to {
-    --search-border-angle: 360deg;
-  }
+  padding: 22px 26px 32px;
 }
 
 @keyframes themeCloudMove {
@@ -1064,17 +859,6 @@ async function handleUserCommand(command: string) {
 
   80% {
     transform: scale(0.82);
-  }
-}
-
-@keyframes sideCardPulse {
-  0%,
-  100% {
-    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.08);
-  }
-
-  50% {
-    box-shadow: 0 16px 36px rgba(6, 182, 212, 0.14);
   }
 }
 </style>
