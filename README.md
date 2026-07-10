@@ -178,6 +178,8 @@ python -m app.evaluation.run_eval
 # 结果写入 backend/app/evaluation/reports/evaluation_summary.json
 ```
 
+前端「测试评估」页（`/evaluation`）内置**可复现评测报告**：通过 `GET /api/evaluation/report` 现场运行离线评测，展示三条能力的 precision/recall/f1、Top-1 准确率与错误案例分析。
+
 ## 测试
 
 ```bash

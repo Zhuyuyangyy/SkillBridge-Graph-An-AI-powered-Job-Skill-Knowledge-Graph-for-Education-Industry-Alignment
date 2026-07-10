@@ -16,6 +16,7 @@
 
 import ast
 from collections import defaultdict, deque
+from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -583,3 +584,17 @@ def evolution_version_compare(db: Session = Depends(get_db)):
             }
         )
     return {"cards": cards, "total": len(cards)}
+
+
+@router.get("/evaluation/report")
+def evaluation_report():
+    """可复现评测报告：现场运行 run_eval，返回三条能力的指标与错误案例。"""
+    from app.evaluation.run_eval import run as run_evaluation
+
+    results = run_evaluation()
+    return {
+        "command": "python -m app.evaluation.run_eval",
+        "taskCount": len(results),
+        "totalSamples": sum(r.samples for r in results),
+        "results": [asdict(r) for r in results],
+    }

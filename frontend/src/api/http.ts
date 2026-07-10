@@ -44,6 +44,7 @@ export const api = {
   evolutionVersionCompare: () => http.get('/api/evolution/version-compare').then((res) => res.data),
   graphEvidence: (node_type: 'job' | 'skill', node_id: number) =>
     http.get('/api/graph/evidence', { params: { node_type, node_id } }).then((res) => res.data),
+  evaluationReport: () => http.get('/api/evaluation/report').then((res) => res.data),
   parseResume: (text: string) => http.post('/api/resume/parse', { text }).then((res) => res.data),
   matchAnalysis: (payload: unknown) => http.post('/api/match-analysis', payload).then((res) => res.data),
   learningPath: (id: number) => http.get(`/api/learning-path/${id}`).then((res) => res.data),
