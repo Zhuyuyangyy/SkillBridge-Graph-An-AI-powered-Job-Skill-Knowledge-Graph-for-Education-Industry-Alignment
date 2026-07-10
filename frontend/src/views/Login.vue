@@ -62,6 +62,12 @@
               <span>{{ loading ? '正在验证' : '进入系统' }}</span>
               <el-icon><ArrowRight /></el-icon>
             </button>
+
+            <router-link class="showcase-link" to="/showcase">
+              <el-icon><DataBoard /></el-icon>
+              <span>无需登录 · 查看项目展示</span>
+              <el-icon class="showcase-link__arrow"><ArrowRight /></el-icon>
+            </router-link>
           </el-form>
 
           <el-form v-else key="register" class="auth-form register-form" label-position="top">
@@ -138,7 +144,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowRight, Lock, MagicStick, Message, OfficeBuilding, Refresh, User } from '@element-plus/icons-vue'
+import { ArrowRight, DataBoard, Lock, MagicStick, Message, OfficeBuilding, Refresh, User } from '@element-plus/icons-vue'
 import { api } from '@/api/http'
 import { useAuthStore } from '@/stores/auth'
 
@@ -817,6 +823,37 @@ async function submitRegister() {
 .neon-button:disabled {
   cursor: progress;
   opacity: 0.78;
+}
+
+.showcase-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  border: 1px solid rgba(120, 200, 255, 0.3);
+  border-radius: 12px;
+  padding: 11px 14px;
+  color: #bfe6ff;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  background: rgba(80, 180, 255, 0.06);
+  transition: all 0.2s ease;
+}
+
+.showcase-link:hover {
+  border-color: rgba(120, 200, 255, 0.6);
+  background: rgba(80, 180, 255, 0.14);
+  color: #eaf7ff;
+}
+
+.showcase-link__arrow {
+  transition: transform 0.2s ease;
+}
+
+.showcase-link:hover .showcase-link__arrow {
+  transform: translateX(3px);
 }
 
 .role-segment {

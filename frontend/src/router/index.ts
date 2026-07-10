@@ -7,6 +7,7 @@ const allRoles = ['candidate', 'hr', 'admin']
 
 const routes = [
   { path: '/login', name: 'login', component: () => import('@/views/Login.vue'), meta: { public: true, title: '登录' } },
+  { path: '/showcase', name: 'showcase', component: () => import('@/views/Showcase.vue'), meta: { public: true, title: '项目展示' } },
   {
     path: '/',
     component: MainLayout,

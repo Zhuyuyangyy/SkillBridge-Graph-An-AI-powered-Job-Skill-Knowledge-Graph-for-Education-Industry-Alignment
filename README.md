@@ -13,6 +13,8 @@
 
 此外，参考挑战杯国奖项目「可复现、可量化、可展示错误案例」的评测表达，新增一键评测复现脚本 `backend/app/evaluation/run_eval.py`：对 JD 技能抽取、简历技能抽取、人岗匹配三条能力产出统一的 precision/recall/f1、Top-1 准确率和错误案例，答辩时可一条命令复现。
 
+并新增**面向评委的项目展示页（`/showcase`，无需登录）**：价值舱式首页，一屏呈现核心 KPI、赛题闭环流程、动态能力图谱、岗位版本演化与核心创新点，适合云展厅浏览与演示视频录制；登录页提供「无需登录 · 查看项目展示」入口。
+
 两个模块**直接复用数融智联现有 SQLite 中的岗位、技能、岗位-技能关系和能力更新事件数据**，后端计算集中在 `backend/app/routers/graph_explore.py`，不依赖外部图数据库；前端为 `frontend/src/views/GraphExplore.vue` 与 `frontend/src/views/CapabilityEvolution.vue`，沿用原有 Element Plus 玻璃拟态主题，支持浅色/深色模式。
 
 原始的三个项目压缩包（`jobgraph-server`、`jobgraph-web`、`shurong-zhilian`）作为归档保留在 `fightbei/` 目录下。
@@ -92,6 +94,7 @@ docker compose up --build
 
 ## 核心页面
 
+- `/showcase` 项目展示页（无需登录 · 面向评委/云展厅/演示录屏）
 - `/login` 登录与创建账号
 - `/personal-center` 求职者个人中心，维护个人画像
 - `/hr-candidates` HR 候选人管理
