@@ -1,5 +1,6 @@
 import ast
 import json
+from dataclasses import asdict
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -472,14 +473,37 @@ def reject_task(task_id: int, db: Session = Depends(get_db)):
 
 @router.get("/evaluation/metrics")
 def evaluation_metrics(db: Session = Depends(get_db)):
+    """评测指标：复用 run_eval 产出的真实 precision/recall/f1 与错误案例，
+    不再使用硬编码准确率，便于答辩现场一条命令复现。"""
     total = db.scalar(select(func.count(TestCase.id))) or 1
     passed = db.scalar(select(func.count(TestCase.id)).where(TestCase.passed.is_(True))) or 0
+
+    eval_results = []
+    reproducible = False
+    try:
+        from app.evaluation.run_eval import run as run_eval
+
+        eval_results = [asdict(r) for r in run_eval()]
+        reproducible = True
+    except Exception:  # 评测样本缺失等异常时回退，保证接口可用
+        eval_results = []
+
+    # 按 task 取指标，回退到 None 表示该维度未评测
+    by_task = {row["task"]: row for row in eval_results}
+    jd = by_task.get("jd_extraction", {})
+    resume = by_task.get("resume_extraction", {})
+    match = by_task.get("job_match", {})
+
     return {
-        "jd_parse_accuracy": 91.6,
-        "resume_parse_accuracy": 92.4,
-        "match_accuracy": 91.8,
+        "reproducible": reproducible,
+        "total_samples": sum(row.get("samples", 0) for row in eval_results),
+        # 兼容旧前端字段：用 f1 作为“准确率”口径展示
+        "jd_parse_accuracy": round((jd.get("f1") or 0) * 100, 1),
+        "resume_parse_accuracy": round((resume.get("f1") or 0) * 100, 1),
+        "match_accuracy": round((match.get("accuracy") or 0) * 100, 1),
         "test_case_count": total,
         "unit_test_coverage": round(passed / total * 100, 1),
+        "tasks": eval_results,
         "cases": [to_dict(row) for row in db.scalars(select(TestCase).limit(12)).all()],
     }
 

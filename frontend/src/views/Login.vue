@@ -131,6 +131,11 @@
         </transition>
       </section>
     </main>
+
+    <button class="showcase-entry" type="button" @click="$router.push('/showcase')">
+      <el-icon><DataAnalysis /></el-icon>
+      <span>查看项目展示</span>
+    </button>
   </div>
 </template>
 
@@ -138,7 +143,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowRight, Lock, MagicStick, Message, OfficeBuilding, Refresh, User } from '@element-plus/icons-vue'
+import { ArrowRight, DataAnalysis, Lock, MagicStick, Message, OfficeBuilding, Refresh, User } from '@element-plus/icons-vue'
 import { api } from '@/api/http'
 import { useAuthStore } from '@/stores/auth'
 
@@ -397,6 +402,31 @@ async function submitRegister() {
   place-items: center;
   min-height: 100vh;
   padding: 42px 20px;
+}
+
+.showcase-entry {
+  position: fixed;
+  right: 26px;
+  bottom: 22px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(133, 210, 255, 0.45);
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: rgba(10, 40, 91, 0.55);
+  color: #eaf4ff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.showcase-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(6, 182, 212, 0.32);
 }
 
 .orbit-shell {

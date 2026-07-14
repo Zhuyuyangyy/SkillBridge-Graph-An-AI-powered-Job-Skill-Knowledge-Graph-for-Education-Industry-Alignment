@@ -23,13 +23,26 @@
         <el-icon class="status-arrow"><ArrowRight /></el-icon>
       </div>
 
-      <el-menu :default-active="activeMenu" class="side-menu" @select="handleMenuSelect">
-        <el-menu-item v-for="item in visibleMenus" :key="item.path" :index="item.path">
-          <span class="active-rail"></span>
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.label }}</span>
-          <el-icon class="menu-arrow"><ArrowRight /></el-icon>
-        </el-menu-item>
+      <el-menu ref="menuRef" :default-active="activeMenu" class="side-menu" :unique-opened="true" @select="handleMenuSelect">
+        <template v-for="group in visibleGroups" :key="group.title">
+          <!-- 单子项分组：直接渲染为一级菜单项，保持扁平观感 -->
+          <el-menu-item v-if="group.items.length === 1" :index="group.items[0].path">
+            <span class="active-rail"></span>
+            <el-icon><component :is="group.icon" /></el-icon>
+            <span>{{ group.items[0].label }}</span>
+            <el-icon class="menu-arrow"><ArrowRight /></el-icon>
+          </el-menu-item>
+          <!-- 多子项分组：渲染为可展开子菜单 -->
+          <el-sub-menu v-else :index="group.title">
+            <template #title>
+              <el-icon><component :is="group.icon" /></el-icon>
+              <span>{{ group.title }}</span>
+            </template>
+            <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+              <span>{{ item.label }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+        </template>
       </el-menu>
 
       <div class="aside-deco">
@@ -138,33 +151,74 @@ import {
   User,
   VideoCamera
 } from '@element-plus/icons-vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import IconSprite from '@/components/IconSprite.vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/http'
 
-const menus = [
-  { path: '/overview', label: '系统概览', icon: Histogram, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/personal-center', label: '个人中心', icon: User, roles: ['candidate'] },
-  { path: '/hr-candidates', label: '候选人管理', icon: User, roles: ['hr', 'admin'] },
-  { path: '/datasets', label: '数据源管理', icon: Files, roles: ['hr', 'admin'] },
-  { path: '/jd-parser', label: 'JD解析', icon: Document, roles: ['hr', 'admin'] },
-  { path: '/jobs', label: '岗位管理', icon: Management, roles: ['hr', 'admin'] },
-  { path: '/emerging-jobs', label: '新岗位发现', icon: TrendCharts, roles: ['hr', 'admin'] },
-  { path: '/job-evolution', label: '岗位能力更新', icon: Operation, roles: ['hr', 'admin'] },
-  { path: '/skill-graph', label: '能力图谱', icon: Connection, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/graph-explore', label: '图谱探索', icon: Share, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/capability-evolution', label: '能力演化', icon: DataLine, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/resume-parser', label: '简历解析', icon: User, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/match-analysis', label: '匹配分析', icon: Aim, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/digital-interviewer', label: '数字人面试官', icon: VideoCamera, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/learning-path', label: '学习路径', icon: Reading, roles: ['candidate'] },
-  { path: '/review-tasks', label: '人工审核', icon: List, roles: ['hr', 'admin'] },
-  { path: '/evaluation', label: '测试评估', icon: DataAnalysis, roles: ['hr', 'admin'] },
-  { path: '/settings', label: '系统设置', icon: Setting, roles: ['hr', 'admin'] },
-  { path: '/account-settings', label: '账号设置', icon: Setting, roles: ['candidate', 'hr', 'admin'] }
+// 按挑战杯国奖改造方案，把 19 个扁平菜单收敛为 7 个主入口分组，
+// 保留全部路由与角色过滤；账号设置仍由右上角用户下拉进入。
+const allRoles = ['candidate', 'hr', 'admin']
+const hrRolesOnly = ['hr', 'admin']
+const candidateOnly = ['candidate']
+
+const menuGroups = [
+  {
+    title: '数据驾驶舱', icon: Histogram,
+    items: [
+      { path: '/overview', label: '系统概览', roles: allRoles },
+      { path: '/datasets', label: '数据源管理', roles: hrRolesOnly },
+      { path: '/evaluation', label: '测试评估', roles: hrRolesOnly },
+      { path: '/settings', label: '系统设置', roles: hrRolesOnly }
+    ]
+  },
+  {
+    title: '岗位发现与演化', icon: TrendCharts,
+    items: [
+      { path: '/jd-parser', label: 'JD解析', roles: hrRolesOnly },
+      { path: '/jobs', label: '岗位管理', roles: hrRolesOnly },
+      { path: '/emerging-jobs', label: '新岗位发现', roles: hrRolesOnly },
+      { path: '/job-evolution', label: '岗位能力更新', roles: hrRolesOnly },
+      { path: '/capability-evolution', label: '能力演化', roles: allRoles }
+    ]
+  },
+  {
+    title: '能力图谱大脑', icon: Connection,
+    items: [
+      { path: '/skill-graph', label: '能力图谱', roles: allRoles },
+      { path: '/graph-explore', label: '图谱探索', roles: allRoles }
+    ]
+  },
+  {
+    title: '简历与匹配诊断', icon: Aim,
+    items: [
+      { path: '/resume-parser', label: '简历解析', roles: allRoles },
+      { path: '/match-analysis', label: '匹配分析', roles: allRoles }
+    ]
+  },
+  {
+    title: '学习与成长', icon: Reading,
+    items: [
+      { path: '/personal-center', label: '个人中心', roles: candidateOnly },
+      { path: '/learning-path', label: '学习路径', roles: candidateOnly },
+      { path: '/digital-interviewer', label: '数字人面试官', roles: allRoles }
+    ]
+  },
+  {
+    title: '审核与可信治理', icon: List,
+    items: [
+      { path: '/review-tasks', label: '人工审核', roles: hrRolesOnly },
+      { path: '/hr-candidates', label: '候选人管理', roles: hrRolesOnly }
+    ]
+  },
+  {
+    title: '项目展示', icon: DataAnalysis,
+    items: [
+      { path: '/showcase', label: '项目展示页', roles: allRoles }
+    ]
+  }
 ]
 
 void ChatDotRound
@@ -175,8 +229,29 @@ const route = useRoute()
 const searchKeyword = ref('')
 const candidateAvatar = ref('')
 const isDarkTheme = ref(localStorage.getItem('sr-theme') === 'dark')
-const visibleMenus = computed(() => menus.filter((item) => item.roles.includes(auth.role || 'candidate')))
+const currentRole = computed(() => auth.role || 'candidate')
+// 按角色过滤后的分组：仅保留有可见子项的分组
+const visibleGroups = computed(() =>
+  menuGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.roles.includes(currentRole.value))
+    }))
+    .filter((group) => group.items.length)
+)
+// 扁平化可见菜单项，供全局搜索使用
+const visibleMenus = computed(() => visibleGroups.value.flatMap((group) => group.items))
 const activeMenu = computed(() => route.path)
+const menuRef = ref<any>(null)
+
+// 路由变化时自动展开当前页面所在的分组，保证高亮可见
+function openActiveGroup() {
+  const activeGroup = visibleGroups.value.find((group) =>
+    group.items.length > 1 && group.items.some((item) => item.path === route.path)
+  )
+  if (activeGroup) menuRef.value?.open(activeGroup.title)
+}
+watch(() => route.path, () => nextTick(openActiveGroup))
 const roleLabel = computed(() => (auth.role === 'hr' ? '企业 HR' : auth.role === 'admin' ? '管理员' : '求职者/学生'))
 const userInitial = computed(() => (auth.user?.display_name || auth.user?.username || '用').slice(0, 1))
 const userAvatar = computed(() => (auth.role === 'candidate' ? candidateAvatar.value : ''))
@@ -200,7 +275,8 @@ const headerSubtitle = computed(() => {
     '/review-tasks': '处理低置信度的新岗位、新技能、删除技能和修改技能任务',
     '/evaluation': '查看 JD 解析、简历解析、匹配分析、测试用例数量和单元测试评估结果',
     '/settings': '管理智能服务配置、图谱写入规则和审核阈值',
-    '/account-settings': '维护账号资料、联系方式和登录密码'
+    '/account-settings': '维护账号资料、联系方式和登录密码',
+    '/showcase': '面向评委的项目展示首页：闭环指标、能力网络与证据链'
   }
   return map[route.path] || (auth.role === 'candidate' ? '维护个人画像，查看岗位匹配和学习路径' : '管理岗位数据、能力图谱和候选人资料')
 })
@@ -216,6 +292,7 @@ const searchTargets = computed(() =>
 onMounted(() => {
   applyThemeClass()
   loadCandidateAvatar()
+  nextTick(openActiveGroup)
   window.addEventListener('profile-avatar-updated', handleAvatarUpdated as EventListener)
 })
 
@@ -469,6 +546,26 @@ async function handleUserCommand(command: string) {
   background: var(--primary-soft);
   color: var(--primary);
   font-weight: 650;
+}
+
+/* 分组子菜单标题：与一级菜单项视觉一致 */
+:deep(.el-sub-menu__title) {
+  height: 38px;
+  border-radius: 9px;
+  color: var(--heading);
+  font-weight: 700;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+:deep(.el-sub-menu__title:hover) {
+  background: var(--surface-2);
+}
+
+:deep(.el-sub-menu .el-menu-item) {
+  height: 34px;
+  padding-left: 44px !important;
+  font-size: 13px;
+  font-weight: 550;
 }
 
 .active-rail {
