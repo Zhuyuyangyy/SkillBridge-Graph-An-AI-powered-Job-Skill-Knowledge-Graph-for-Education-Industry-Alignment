@@ -23,13 +23,26 @@
         <el-icon class="status-arrow"><ArrowRight /></el-icon>
       </div>
 
-      <el-menu :default-active="activeMenu" class="side-menu" @select="handleMenuSelect">
-        <el-menu-item v-for="item in visibleMenus" :key="item.path" :index="item.path">
-          <span class="active-rail"></span>
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.label }}</span>
-          <el-icon class="menu-arrow"><ArrowRight /></el-icon>
-        </el-menu-item>
+      <el-menu :default-active="activeMenu" :default-openeds="defaultOpeneds" class="side-menu" @select="handleMenuSelect">
+        <template v-for="group in visibleGroups" :key="group.key">
+          <el-sub-menu v-if="group.children" :index="group.key" class="menu-group">
+            <template #title>
+              <el-icon><component :is="group.icon" /></el-icon>
+              <span>{{ group.label }}</span>
+            </template>
+            <el-menu-item v-for="item in group.children" :key="item.path" :index="item.path" class="menu-child">
+              <span class="active-rail"></span>
+              <span class="child-dot"></span>
+              <span>{{ item.label }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <el-menu-item v-else :index="group.path" class="menu-single">
+            <span class="active-rail"></span>
+            <el-icon><component :is="group.icon" /></el-icon>
+            <span>{{ group.label }}</span>
+            <el-icon class="menu-arrow"><ArrowRight /></el-icon>
+          </el-menu-item>
+        </template>
       </el-menu>
 
       <div class="aside-deco">
@@ -120,23 +133,13 @@
 import {
   Aim,
   ArrowRight,
-  ChatDotRound,
-  Connection,
-  DataAnalysis,
-  DataLine,
-  Document,
-  Files,
+  DataBoard,
   Histogram,
   List,
-  Management,
-  Operation,
   Reading,
   Search,
-  Setting,
   Share,
-  TrendCharts,
-  User,
-  VideoCamera
+  TrendCharts
 } from '@element-plus/icons-vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -145,29 +148,77 @@ import IconSprite from '@/components/IconSprite.vue'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api/http'
 
-const menus = [
-  { path: '/overview', label: '系统概览', icon: Histogram, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/personal-center', label: '个人中心', icon: User, roles: ['candidate'] },
-  { path: '/hr-candidates', label: '候选人管理', icon: User, roles: ['hr', 'admin'] },
-  { path: '/datasets', label: '数据源管理', icon: Files, roles: ['hr', 'admin'] },
-  { path: '/jd-parser', label: 'JD解析', icon: Document, roles: ['hr', 'admin'] },
-  { path: '/jobs', label: '岗位管理', icon: Management, roles: ['hr', 'admin'] },
-  { path: '/emerging-jobs', label: '新岗位发现', icon: TrendCharts, roles: ['hr', 'admin'] },
-  { path: '/job-evolution', label: '岗位能力更新', icon: Operation, roles: ['hr', 'admin'] },
-  { path: '/skill-graph', label: '能力图谱', icon: Connection, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/graph-explore', label: '图谱探索', icon: Share, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/capability-evolution', label: '能力演化', icon: DataLine, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/resume-parser', label: '简历解析', icon: User, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/match-analysis', label: '匹配分析', icon: Aim, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/digital-interviewer', label: '数字人面试官', icon: VideoCamera, roles: ['candidate', 'hr', 'admin'] },
-  { path: '/learning-path', label: '学习路径', icon: Reading, roles: ['candidate'] },
-  { path: '/review-tasks', label: '人工审核', icon: List, roles: ['hr', 'admin'] },
-  { path: '/evaluation', label: '测试评估', icon: DataAnalysis, roles: ['hr', 'admin'] },
-  { path: '/settings', label: '系统设置', icon: Setting, roles: ['hr', 'admin'] },
-  { path: '/account-settings', label: '账号设置', icon: Setting, roles: ['candidate', 'hr', 'admin'] }
-]
+// 七页主导航（借鉴挑战杯国奖项目的「评委叙事型」信息架构）：
+// 收敛导航但不删功能——所有原页面保留，按叙事主线分组；账号设置在右上角用户菜单。
+type MenuLeaf = { path: string; label: string; roles: string[] }
+type MenuGroup = {
+  key: string
+  label: string
+  icon: any
+  children?: MenuLeaf[]
+  path?: string
+  roles?: string[]
+}
 
-void ChatDotRound
+const allRoles = ['candidate', 'hr', 'admin']
+const hrRoles = ['hr', 'admin']
+
+const menuGroups: MenuGroup[] = [
+  {
+    key: 'g-dashboard',
+    label: '数据驾驶舱',
+    icon: Histogram,
+    children: [
+      { path: '/overview', label: '系统概览', roles: allRoles },
+      { path: '/datasets', label: '数据源管理', roles: hrRoles },
+      { path: '/evaluation', label: '测试评估', roles: hrRoles }
+    ]
+  },
+  {
+    key: 'g-jobs',
+    label: '岗位发现与演化',
+    icon: TrendCharts,
+    children: [
+      { path: '/jobs', label: '岗位管理', roles: hrRoles },
+      { path: '/jd-parser', label: 'JD解析', roles: hrRoles },
+      { path: '/emerging-jobs', label: '新岗位发现', roles: hrRoles },
+      { path: '/job-evolution', label: '岗位能力更新', roles: hrRoles },
+      { path: '/capability-evolution', label: '能力演化', roles: allRoles }
+    ]
+  },
+  {
+    key: 'g-graph',
+    label: '能力图谱大脑',
+    icon: Share,
+    children: [
+      { path: '/skill-graph', label: '能力图谱', roles: allRoles },
+      { path: '/graph-explore', label: '图谱探索', roles: allRoles }
+    ]
+  },
+  {
+    key: 'g-match',
+    label: '简历与匹配诊断',
+    icon: Aim,
+    children: [
+      { path: '/personal-center', label: '个人中心', roles: ['candidate'] },
+      { path: '/hr-candidates', label: '候选人管理', roles: hrRoles },
+      { path: '/resume-parser', label: '简历解析', roles: allRoles },
+      { path: '/match-analysis', label: '匹配分析', roles: allRoles },
+      { path: '/digital-interviewer', label: '数字人面试官', roles: allRoles }
+    ]
+  },
+  { key: '/learning-path', label: '学习路径', icon: Reading, path: '/learning-path', roles: ['candidate'] },
+  {
+    key: 'g-review',
+    label: '审核与可信治理',
+    icon: List,
+    children: [
+      { path: '/review-tasks', label: '人工审核', roles: hrRoles },
+      { path: '/settings', label: '系统设置', roles: hrRoles }
+    ]
+  },
+  { key: '/showcase', label: '项目展示', icon: DataBoard, path: '/showcase', roles: allRoles }
+]
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -175,7 +226,35 @@ const route = useRoute()
 const searchKeyword = ref('')
 const candidateAvatar = ref('')
 const isDarkTheme = ref(localStorage.getItem('sr-theme') === 'dark')
-const visibleMenus = computed(() => menus.filter((item) => item.roles.includes(auth.role || 'candidate')))
+const visibleGroups = computed(() => {
+  const role = auth.role || 'candidate'
+  const groups: MenuGroup[] = []
+  for (const group of menuGroups) {
+    if (group.children) {
+      const children = group.children.filter((item) => item.roles.includes(role))
+      if (!children.length) continue
+      if (children.length === 1) {
+        // 该角色下只剩一个子页面时，直接以分组名作为单入口
+        groups.push({ key: children[0].path, label: group.label, icon: group.icon, path: children[0].path })
+      } else {
+        groups.push({ ...group, children })
+      }
+    } else if (group.roles?.includes(role)) {
+      groups.push(group)
+    }
+  }
+  return groups
+})
+const visibleMenuItems = computed(() =>
+  visibleGroups.value.flatMap((group) =>
+    group.children
+      ? group.children.map((item) => ({ path: item.path, label: item.label }))
+      : [{ path: group.path as string, label: group.label }]
+  )
+)
+const defaultOpeneds = menuGroups
+  .filter((group) => group.children?.some((item) => item.path === route.path))
+  .map((group) => group.key)
 const activeMenu = computed(() => route.path)
 const roleLabel = computed(() => (auth.role === 'hr' ? '企业 HR' : auth.role === 'admin' ? '管理员' : '求职者/学生'))
 const userInitial = computed(() => (auth.user?.display_name || auth.user?.username || '用').slice(0, 1))
@@ -205,7 +284,7 @@ const headerSubtitle = computed(() => {
   return map[route.path] || (auth.role === 'candidate' ? '维护个人画像，查看岗位匹配和学习路径' : '管理岗位数据、能力图谱和候选人资料')
 })
 const searchTargets = computed(() =>
-  visibleMenus.value.map((item) => ({
+  visibleMenuItems.value.map((item) => ({
     label: item.label,
     path: item.path,
     hint: routeHint(item.path),
@@ -294,7 +373,8 @@ function routeHint(path: string) {
     '/review-tasks': '人工审核',
     '/evaluation': '测试评估',
     '/settings': '系统设置',
-    '/account-settings': '账号 密码 邮箱'
+    '/account-settings': '账号 密码 邮箱',
+    '/showcase': '项目展示 评委 云展厅 路演'
   }
   return map[path] || '功能入口'
 }
@@ -567,6 +647,72 @@ async function handleUserCommand(command: string) {
 
 :deep(.el-menu-item.is-active) .active-rail {
   display: block;
+}
+
+/* 七页主导航分组 */
+:deep(.el-sub-menu) {
+  border-radius: 15px;
+}
+
+:deep(.el-sub-menu__title) {
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  color: #52647d;
+  font-weight: 850;
+  transition: all 220ms ease;
+}
+
+:deep(.el-sub-menu__title:hover) {
+  border-color: rgba(190, 213, 242, 0.86);
+  background: rgba(255, 255, 255, 0.58);
+  color: #1455b8;
+}
+
+:deep(.el-sub-menu__title .el-icon:first-of-type) {
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+:deep(.el-sub-menu__title:hover .el-icon:first-of-type),
+:deep(.el-sub-menu.is-active > .el-sub-menu__title .el-icon:first-of-type) {
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.32));
+  transform: scale(1.08);
+}
+
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: #1455b8;
+}
+
+:deep(.el-sub-menu .el-menu) {
+  padding: 2px 0 4px;
+  background: transparent;
+}
+
+:deep(.el-sub-menu .el-menu-item) {
+  height: 34px;
+  min-width: 0;
+  margin-left: 14px;
+  padding-left: 30px !important;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.child-dot {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.45;
+  transform: translateY(-50%);
+  transition: opacity 200ms ease, box-shadow 200ms ease;
+}
+
+:deep(.el-menu-item.is-active) .child-dot {
+  opacity: 1;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
 }
 
 .menu-arrow {
