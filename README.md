@@ -140,30 +140,37 @@ docker compose up --build
 
 所有岗位定义、技能关系和更新记录都带有 `evidence` 字段。低置信度内容进入人工审核模块，不直接写入正式图谱。
 
-## AI 接入预留
+## AI 接入（真实模型即插即用）
 
-当前默认：
+当前默认完全本地运行：
 
 ```bash
 AI_PROVIDER=mock
 ```
 
-后续接入真实 AI 时，可配置：
+接入真实模型只需在 `backend/.env` 配置任意 **Chat Completions 兼容服务**（OpenAI / DeepSeek / 通义 / 智谱 / vLLM / Ollama 网关等），无需改代码：
 
 ```bash
 AI_PROVIDER=openai_compatible
 AI_API_BASE_URL=https://your-ai-host/v1
 AI_API_KEY=your-api-key
 AI_MODEL=your-model-name
+AI_TIMEOUT_SECONDS=45   # 可选
 ```
 
-已预留统一接口：
+真实链路的三条可靠性设计（面向答辩演示）：
+
+1. **字段级输出 schema**：每个任务的提示词内置 `output_schema`，约束模型返回结构化 JSON（兼容 ```json 围栏与前后缀噪声的稳健提取）；
+2. **结果归一化**：模型输出以本地基线合并归一，下游依赖的关键字段（如 `confidence`、`evidence`）永远存在且类型正确，置信度自动钳制到 0-1；
+3. **异常自动回退**：真实接口任何一步失败（网络、鉴权、JSON 解析）自动回退 mock，响应带 `fallback=true` 与 `fallback_reason`，演示现场不中断。
+
+统一接口：
 
 - `GET /api/ai/status`
 - `POST /api/ai/analyze`
 - `POST /api/digital-interviewer/interview`
 
-JD 解析、简历解析、匹配建议、学习路径和数字人面试官都已经走统一 AI Provider 边界，后续替换模型服务时不需要大改前端。
+JD 解析、简历解析、匹配建议、学习路径和数字人面试官都走统一 AI Provider 边界，替换模型服务时不需要改前端。
 
 更详细说明见：[docs/ai-integration.md](docs/ai-integration.md)
 
